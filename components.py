@@ -1,6 +1,7 @@
 from colors import *
 from drawer import *
 from utils import *
+from sounds import *
 
 
 class Button:
@@ -68,6 +69,7 @@ class Button:
         if self.isOver(pos):
             if self.on_click:
                 self.on_click()
+                click_sfx.play()
             return True
         return False
 

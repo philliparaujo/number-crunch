@@ -6,6 +6,7 @@ from colors import *
 from components import *
 from features import *
 from ui import *
+from sounds import *
 
 from utils import *
 
@@ -35,6 +36,8 @@ def main():
     # Mouse variables
     global clicking, dragging
 
+    # Initialize sound effects
+
     # Button functions
     def end_turn():
         nonlocal scores, turn, actions, texts, free_reroll, hp, target, next_target
@@ -45,6 +48,8 @@ def main():
         target = fetch_target_score(threshold, turn, target)
         next_target = fetch_target_score(threshold, turn + 1, next_target)
         free_reroll = True
+        if target > score:
+            damage_sfx.play()
         for text in texts:
             text.reset(turn)
         print(scores)
@@ -75,6 +80,7 @@ def main():
     def add():
         nonlocal cells
         if add_check():
+            add_sfx.play()
             add_cells(cells)
 
     # UI components
@@ -354,6 +360,7 @@ def handle_mouse_release(event, actions, cells, pos):
         if dragging and actions >= dragging.cost:
             for cell in cells:
                 if cell.willDropSucceed(pos):
+                    purchase_sfx.play()
                     cell.drop(pos, dragging)
                     actions -= dragging.cost
                     dragging = None
