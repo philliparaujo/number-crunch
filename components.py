@@ -243,18 +243,22 @@ def reroll():
 
 
 def add_check(cells):
-    num_selected = 0
-    for cell in cells:
-        if cell.selected:
-            num_selected += 1
-
-    return num_selected == 2
+    return len(list(filter(lambda cell: cell.selected, cells))) == 2
 
 
-def add(cells):
-    if add_check(cells):
-        add_sfx.play()
-        add_cells(cells)
+def add(cells, quiet=False):
+    selected_cells = list(filter(lambda cell: cell.selected, cells))
+    if len(selected_cells) == 2:
+        if not quiet:
+            add_sfx.play()
+
+        first_cell = selected_cells[0]
+        second_cell = selected_cells[1]
+        first_cell.value += second_cell.value
+        second_cell.value = 0
+
+        first_cell.selected = False
+        second_cell.selected = False
 
 
 # Component objects

@@ -1,5 +1,7 @@
 import random
 
+from ui import *
+
 
 def random_choice(weights, index):
     if index > len(weights) - 1:
@@ -19,7 +21,7 @@ def max_choice(weights, index):
     return max(weights[index][0])
 
 
-# Adds up all values in cell array (including bonuses), returns the sum
+# Sums all values in cell array (including bonuses), returns the sum
 def calculate_score(cells):
     score = 0
     for i in range(len(cells)):
@@ -30,20 +32,6 @@ def calculate_score(cells):
                 score += cell.value
 
     return score
-
-
-# Performs an add on the two selected cells
-# Assumes that add_check is successful
-def add_cells(cells):
-    selected_cells = list(filter(lambda cell: cell.selected, cells))
-    if len(selected_cells) == 2:
-        first_cell = selected_cells[0]
-        second_cell = selected_cells[1]
-        first_cell.value += second_cell.value
-        second_cell.value = 0
-
-        first_cell.selected = False
-        second_cell.selected = False
 
 
 # Displays the range of possible number values for the shop
@@ -60,3 +48,19 @@ def get_shop_range(weights, turn):
 # Return difference in scores between two boards
 def calculate_score_diff(cells, cells_copy):
     return calculate_score(cells_copy) - calculate_score(cells)
+
+
+def cost(value):
+    return "(" + str(value) + ")"
+
+
+def preview_text(value):
+    return "(" + ("+" if value >= 0 else "-") + str(abs(value)) + ")"
+
+
+def center_x(button):
+    return button.x + BUTTON_WIDTH / 2
+
+
+def above_y(button):
+    return button.y - 15

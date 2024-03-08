@@ -81,45 +81,45 @@ def draw_game_state(screen, game):
     target_text = "Target: " + str(game.target())
     hp_text = "HP: " + str(game.hp())
 
-    draw_text(screen, score_text, STATE_SIZE, STATE_X_1, 380)
-    draw_text(screen, turn_text, STATE_SIZE, STATE_X_1, 410)
-    draw_text(screen, actions_text, STATE_SIZE, STATE_X_1, 440)
-    draw_text(screen, target_text, STATE_SIZE, STATE_X_2, 380)
-    draw_text(screen, hp_text, STATE_SIZE, STATE_X_2, 410)
+    draw_text(screen, score_text, STATE_SIZE, STATE_X_1, STATE_Y_1)
+    draw_text(screen, turn_text, STATE_SIZE, STATE_X_1, STATE_Y_2)
+    draw_text(screen, actions_text, STATE_SIZE, STATE_X_1, STATE_Y_3)
+    draw_text(screen, target_text, STATE_SIZE, STATE_X_2, STATE_Y_1)
+    draw_text(screen, hp_text, STATE_SIZE, STATE_X_2, STATE_Y_2)
 
 
 # Draw the shop costs, numbers, and rectangles
 def draw_shop(screen, texts, game):
-    draw_rect(screen, GRAY, SHOP_X, 60, SHOP_WIDTH, SHOP_HEIGHT)
-    draw_text(screen, "(1)", COST_SIZE, SHOP_X + 30, 75, DARK_GREEN)
+    draw_rect(screen, GRAY, SHOP_X, SHOP_Y_1, SHOP_WIDTH, SHOP_HEIGHT)
+    draw_text(screen, cost(1), COST_SIZE, SHOP_TEXT_X, SHOP_TEXT_Y_1, DARK_GREEN)
     draw_text(
         screen,
         get_shop_range(level_one_weights, game.turn()),
         COST_SIZE,
-        SHOP_X + 250,
-        75,
+        SHOP_RANGE_X,
+        SHOP_TEXT_Y_1,
         DARK_GRAY,
     )
 
-    draw_rect(screen, GRAY, SHOP_X, 140, SHOP_WIDTH, SHOP_HEIGHT)
-    draw_text(screen, "(2)", COST_SIZE, SHOP_X + 30, 155, DARK_GREEN)
+    draw_rect(screen, GRAY, SHOP_X, SHOP_Y_2, SHOP_WIDTH, SHOP_HEIGHT)
+    draw_text(screen, cost(2), COST_SIZE, SHOP_TEXT_X, SHOP_TEXT_Y_2, DARK_GREEN)
     draw_text(
         screen,
         get_shop_range(level_two_weights, game.turn()),
         COST_SIZE,
-        SHOP_X + 250,
-        155,
+        SHOP_RANGE_X,
+        SHOP_TEXT_Y_2,
         DARK_GRAY,
     )
 
-    draw_rect(screen, GRAY, SHOP_X, 220, SHOP_WIDTH, SHOP_HEIGHT)
-    draw_text(screen, "(3)", COST_SIZE, SHOP_X + 30, 235, DARK_GREEN)
+    draw_rect(screen, GRAY, SHOP_X, SHOP_Y_3, SHOP_WIDTH, SHOP_HEIGHT)
+    draw_text(screen, cost(3), COST_SIZE, SHOP_TEXT_X, SHOP_TEXT_Y_3, DARK_GREEN)
     draw_text(
         screen,
         get_shop_range(level_three_weights, game.turn()),
         COST_SIZE,
-        SHOP_X + 250,
-        235,
+        SHOP_RANGE_X,
+        SHOP_TEXT_Y_3,
         DARK_GRAY,
     )
 
@@ -129,27 +129,27 @@ def draw_shop(screen, texts, game):
 
 # Draw the 'add', 'reroll', and 'end turn' buttons and their costs
 def draw_game_buttons(screen, buttons, mouse_pos, game):
-    add_button = buttons[0]
-    reroll_button = buttons[1]
-
     for button in buttons:
         button.draw(screen, mouse_pos)
 
     # Add button and reroll button costs
+    add_button = buttons[0]
+    reroll_button = buttons[1]
+
     draw_centered_text(
         screen,
-        "(0)",
+        cost(0),
         COST_SIZE,
-        add_button.x + BUTTON_WIDTH / 2,
-        add_button.y - 15,
+        center_x(add_button),
+        above_y(add_button),
         DARK_GREEN,
     )
     draw_centered_text(
         screen,
-        "(0)" if game.free_reroll() else "(1)",
+        cost(0) if game.free_reroll() else cost(1),
         COST_SIZE,
-        reroll_button.x + BUTTON_WIDTH / 2,
-        reroll_button.y - 15,
+        center_x(reroll_button),
+        above_y(reroll_button),
         DARK_GREEN,
     )
 
@@ -158,7 +158,9 @@ def draw_game_buttons(screen, buttons, mouse_pos, game):
 def draw_start_screen(screen, pos, start_game_button):
     screen.fill(BG_COLOR)
 
-    draw_centered_text(screen, "Number Crunch", TITLE_SIZE, SCREEN_WIDTH / 2, 180)
+    draw_centered_text(
+        screen, "Number Crunch", TITLE_SIZE, SCREEN_WIDTH / 2, START_TITLE_Y
+    )
     start_game_button.draw(screen, pos)
 
     pygame.display.flip()
@@ -167,18 +169,26 @@ def draw_start_screen(screen, pos, start_game_button):
 # Draw the game over screen with score details
 def draw_game_over_screen(screen, pos, game, restart_button):
     screen.fill(BG_COLOR)
-    draw_centered_text(screen, "GAME OVER", TITLE_SIZE, SCREEN_WIDTH / 2, 80)
-    draw_centered_text(screen, "Turn: " + str(game.turn()), 48, SCREEN_WIDTH / 2, 160)
-    draw_centered_text(screen, "Score: " + str(game.score()), 48, SCREEN_WIDTH / 2, 200)
+    draw_centered_text(screen, "GAME OVER", TITLE_SIZE, SCREEN_WIDTH / 2, END_TITLE_Y)
+    draw_centered_text(
+        screen, "Turn: " + str(game.turn()), DETAIL_SIZE, SCREEN_WIDTH / 2, DETAIL_Y_1
+    )
+    draw_centered_text(
+        screen, "Score: " + str(game.score()), DETAIL_SIZE, SCREEN_WIDTH / 2, DETAIL_Y_2
+    )
     draw_centered_text(
         screen,
         "Max Score: " + str(game.max_score()),
-        48,
+        DETAIL_SIZE,
         SCREEN_WIDTH / 2,
-        240,
+        DETAIL_Y_3,
     )
     draw_centered_text(
-        screen, "Target: " + str(game.target()), 48, SCREEN_WIDTH / 2, 280
+        screen,
+        "Target: " + str(game.target()),
+        DETAIL_SIZE,
+        SCREEN_WIDTH / 2,
+        DETAIL_Y_4,
     )
     restart_button.draw(screen, pos)
     pygame.display.flip()
@@ -188,8 +198,13 @@ def draw_game_over_screen(screen, pos, game, restart_button):
 def draw_score_diff(screen, score_diff, game):
     score_text = "Score: " + str(game.score())
     score_width = get_text_width(score_text, STATE_SIZE)
-    score_preview = "(" + ("+" if score_diff >= 0 else "-") + str(abs(score_diff)) + ")"
-    draw_text(screen, score_preview, STATE_SIZE, STATE_X_1 + score_width + 5, 380)
+    draw_text(
+        screen,
+        preview_text(score_diff),
+        STATE_SIZE,
+        STATE_X_1 + score_width + OFFSET_X,
+        STATE_Y_1,
+    )
 
 
 # Given a change in target score, draw that change next to target text
@@ -198,10 +213,10 @@ def draw_target_diff(screen, target, target_diff):
     target_width = get_text_width(target_text, STATE_SIZE)
     draw_text(
         screen,
-        "(+" + str(target_diff) + ")",
+        preview_text(target_diff),
         STATE_SIZE,
-        STATE_X_2 + target_width + 5,
-        380,
+        STATE_X_2 + target_width + OFFSET_X,
+        STATE_Y_1,
     )
 
 
@@ -222,9 +237,9 @@ def handle_buy_preview(screen, cells, mouse_pos, game):
 # Draw what change in score will be when add is clicked, return if any change
 def handle_add_preview(screen, cells, game):
     cells_copy = [cell.copy() for cell in cells]
-    can_add = sum(1 for cell in cells_copy if cell.selected) == 2
+    can_add = add_check(cells_copy)
     if can_add:
-        add_cells(cells_copy)
+        add(cells_copy, True)
         score_diff = calculate_score_diff(cells, cells_copy)
         draw_score_diff(screen, score_diff, game)
     return can_add
