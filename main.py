@@ -7,6 +7,7 @@ from components import *
 from features import *
 from ui import *
 from sounds import *
+from GameState import *
 
 from utils import *
 
@@ -22,16 +23,7 @@ def main():
     pygame.display.set_caption(TITLE)
 
     # Game variables
-    score = 0
-    turn = 0
-    actions = ACTIONS_START
-    target = TARGET_START
-    hp = HP_START
-    free_reroll = True
-
-    scores = []
-    max_score = 0
-    next_target = NEXT_TARGET_START
+    game_state = GameState()
 
     # Mouse variables
     global clicking, dragging
@@ -40,33 +32,24 @@ def main():
 
     # Button functions
     def end_turn():
-        nonlocal scores, turn, actions, texts, free_reroll, hp, target, next_target
-        scores += [str(score)]
-        hp -= max(0, target - score)
-        turn += 1
-        actions = ACTIONS_START
-        target = fetch_target_score(threshold, turn, target)
-        next_target = fetch_target_score(threshold, turn + 1, next_target)
-        free_reroll = True
-        if target > score:
+        nonlocal game_state
+        if game_state.target > game_state.score:
             damage_sfx.play()
-        for text in texts:
-            text.reset(turn)
-        print(scores)
+
+        game_state.end_turn()
+        game_state.reset_texts(texts)
+
+        print(game_state.scores)
 
     def reroll_check():
-        nonlocal free_reroll, actions
-        return free_reroll or actions > 0
+        nonlocal game_state
+        return game_state.free_reroll or game_state.actions > 0
 
     def reroll():
-        nonlocal free_reroll, turn, actions
+        nonlocal game_state
         if reroll_check():
-            if free_reroll:
-                free_reroll = False
-            else:
-                actions -= 1
-            for text in texts:
-                text.reset(turn)
+            game_state.reroll()
+            game_state.reset_texts(texts)
 
     def add_check():
         nonlocal cells
@@ -158,7 +141,7 @@ def main():
     game_over = False
     exited = False
     while not game_over and not exited:
-        if hp <= 0:
+        if game_state.game_over():
             game_over = True
 
         screen.fill(BG_COLOR)
@@ -166,17 +149,19 @@ def main():
 
         # Draw title, game state, board, shop, and buttons
         draw_centered_text(screen, TITLE, TITLE_SIZE, SCREEN_WIDTH / 2, 20)
+        draw_game_state(screen, game_state)
 
-        draw_game_state(screen, score, turn, actions, target, hp)
-        if not handle_add_preview(screen, cells, score):  # Prevents preview overlap
-            handle_buy_preview(screen, cells, mouse_pos, actions, score)
-        handle_end_turn_preview(screen, mouse_pos, end_turn_button, target, next_target)
+        if not handle_add_preview(
+            screen, cells, game_state
+        ):  # Prevents preview overlap
+            handle_buy_preview(screen, cells, mouse_pos, game_state)
+        handle_end_turn_preview(screen, mouse_pos, end_turn_button, game_state)
 
         for cell in cells:
-            cell.draw(mouse_pos, dragging, actions)
+            cell.draw(mouse_pos, dragging, game_state.actions)
 
-        draw_shop(screen, texts, turn)
-        draw_buttons(screen, buttons, mouse_pos, free_reroll)
+        draw_shop(screen, texts, game_state)
+        draw_buttons(screen, buttons, mouse_pos, game_state)
 
         # Handle text dragging of shop items
         for text in texts:
@@ -194,11 +179,9 @@ def main():
 
             # Handle drop events
             elif event.type == pygame.MOUSEBUTTONUP:
-                actions = handle_mouse_release(event, actions, cells, mouse_pos)
+                actions = handle_mouse_release(event, cells, mouse_pos, game_state)
 
-        # Keep score updated
-        score = calculate_score(cells)
-        max_score = max(max_score, score)
+        game_state.update_score(cells)
 
         pygame.display.flip()
 
@@ -208,15 +191,15 @@ def main():
             if event.type == pygame.QUIT:
                 exited = True
 
-        draw_game_over_screen(screen, turn, score, max_score, target)
+        draw_game_over_screen(screen, game_state)
 
 
-def draw_game_state(screen, score, turn, actions, target, hp):
-    score_text = "Score: " + str(score)
-    turn_text = "Turn: " + str(turn)
-    actions_text = "Actions: " + str(actions)
-    target_text = "Target: " + str(target)
-    hp_text = "HP: " + str(hp)
+def draw_game_state(screen, game_state):
+    score_text = "Score: " + str(game_state.score)
+    turn_text = "Turn: " + str(game_state.turn)
+    actions_text = "Actions: " + str(game_state.actions)
+    target_text = "Target: " + str(game_state.target)
+    hp_text = "HP: " + str(game_state.hp)
 
     draw_text(screen, score_text, STATE_SIZE, STATE_X_1, 380)
     draw_text(screen, turn_text, STATE_SIZE, STATE_X_1, 410)
@@ -235,12 +218,12 @@ def get_shop_range(weights, turn):
     )
 
 
-def draw_shop(screen, texts, turn):
+def draw_shop(screen, texts, game_state):
     draw_rect(screen, GRAY, SHOP_X, 60, SHOP_WIDTH, SHOP_HEIGHT)
     draw_text(screen, "(1)", COST_SIZE, SHOP_X + 30, 75, DARK_GREEN)
     draw_text(
         screen,
-        get_shop_range(level_one_weights, turn),
+        get_shop_range(level_one_weights, game_state.turn),
         COST_SIZE,
         SHOP_X + 250,
         75,
@@ -251,7 +234,7 @@ def draw_shop(screen, texts, turn):
     draw_text(screen, "(2)", COST_SIZE, SHOP_X + 30, 155, DARK_GREEN)
     draw_text(
         screen,
-        get_shop_range(level_two_weights, turn),
+        get_shop_range(level_two_weights, game_state.turn),
         COST_SIZE,
         SHOP_X + 250,
         155,
@@ -262,7 +245,7 @@ def draw_shop(screen, texts, turn):
     draw_text(screen, "(3)", COST_SIZE, SHOP_X + 30, 235, DARK_GREEN)
     draw_text(
         screen,
-        get_shop_range(level_three_weights, turn),
+        get_shop_range(level_three_weights, game_state.turn),
         COST_SIZE,
         SHOP_X + 250,
         235,
@@ -273,8 +256,9 @@ def draw_shop(screen, texts, turn):
         text.draw()
 
 
-def draw_buttons(screen, buttons, mouse_pos, free_reroll):
-    add_button, reroll_button, _ = buttons
+def draw_buttons(screen, buttons, mouse_pos, game_state):
+    add_button = buttons[0]
+    reroll_button = buttons[1]
 
     for button in buttons:
         button.draw(mouse_pos)
@@ -290,7 +274,7 @@ def draw_buttons(screen, buttons, mouse_pos, free_reroll):
     )
     draw_centered_text(
         screen,
-        "(0)" if free_reroll else "(1)",
+        "(0)" if game_state.free_reroll else "(1)",
         COST_SIZE,
         reroll_button.x + BUTTON_WIDTH / 2,
         reroll_button.y - 15,
@@ -298,11 +282,15 @@ def draw_buttons(screen, buttons, mouse_pos, free_reroll):
     )
 
 
-def handle_buy_preview(screen, cells, mouse_pos, actions, score):
-    score_text = "Score: " + str(score)
+def handle_buy_preview(screen, cells, mouse_pos, game_state):
+    score_text = "Score: " + str(game_state.score)
     cells_copy = [cell.copy() for cell in cells]
     for cell in cells_copy:
-        if cell.willDropSucceed(mouse_pos) and dragging and actions >= dragging.cost:
+        if (
+            cell.willDropSucceed(mouse_pos)
+            and dragging
+            and game_state.actions >= dragging.cost
+        ):
             cell.drop(mouse_pos, dragging, False)
             score_diff = calculate_score(cells_copy) - calculate_score(cells)
             score_preview = (
@@ -314,8 +302,8 @@ def handle_buy_preview(screen, cells, mouse_pos, actions, score):
             )
 
 
-def handle_add_preview(screen, cells, score):
-    score_text = "Score: " + str(score)
+def handle_add_preview(screen, cells, game_state):
+    score_text = "Score: " + str(game_state.score)
     cells_copy = [cell.copy() for cell in cells]
     can_add = sum(1 for cell in cells_copy if cell.selected) == 2
     if can_add:
@@ -330,13 +318,13 @@ def handle_add_preview(screen, cells, score):
     return can_add
 
 
-def handle_end_turn_preview(screen, mouse_pos, end_turn_button, target, next_target):
-    target_text = "Target: " + str(target)
+def handle_end_turn_preview(screen, mouse_pos, end_turn_button, game_state):
+    target_text = "Target: " + str(game_state.target)
     if end_turn_button.isOver(mouse_pos):
         target_width = get_text_dimensions(target_text, STATE_SIZE)[0]
         draw_text(
             screen,
-            "(+" + str(next_target - target) + ")",
+            "(+" + str(game_state.next_target - game_state.target) + ")",
             STATE_SIZE,
             STATE_X_2 + target_width + 5,
             380,
@@ -353,30 +341,36 @@ def handle_mouse_click(event, buttons, cells, pos):
         clicking = True
 
 
-def handle_mouse_release(event, actions, cells, pos):
+def handle_mouse_release(event, cells, pos, game_state):
     global clicking, dragging
     if event.button == 1:
         clicking = False
-        if dragging and actions >= dragging.cost:
+        if dragging and game_state.actions >= dragging.cost:
             for cell in cells:
                 if cell.willDropSucceed(pos):
                     purchase_sfx.play()
                     cell.drop(pos, dragging)
-                    actions -= dragging.cost
+                    game_state.actions -= dragging.cost
                     dragging = None
         dragging = None
-    return actions
+    return game_state.actions
 
 
-def draw_game_over_screen(screen, turn, score, max_score, target):
+def draw_game_over_screen(screen, game_state):
     screen.fill(BG_COLOR)
     draw_centered_text(screen, "GAME OVER", 72, SCREEN_WIDTH / 2, 80)
-    draw_centered_text(screen, "Turn: " + str(turn), 48, SCREEN_WIDTH / 2, 200)
-    draw_centered_text(screen, "Score: " + str(score), 48, SCREEN_WIDTH / 2, 240)
     draw_centered_text(
-        screen, "Max Score: " + str(max_score), 48, SCREEN_WIDTH / 2, 280
+        screen, "Turn: " + str(game_state.turn), 48, SCREEN_WIDTH / 2, 200
     )
-    draw_centered_text(screen, "Target: " + str(target), 48, SCREEN_WIDTH / 2, 320)
+    draw_centered_text(
+        screen, "Score: " + str(game_state.score), 48, SCREEN_WIDTH / 2, 240
+    )
+    draw_centered_text(
+        screen, "Max Score: " + str(game_state.max_score), 48, SCREEN_WIDTH / 2, 280
+    )
+    draw_centered_text(
+        screen, "Target: " + str(game_state.target), 48, SCREEN_WIDTH / 2, 320
+    )
     pygame.display.flip()
 
 
