@@ -8,6 +8,7 @@ BLUE = (0, 0, 255)
 LIGHT_BLUE = (60, 60, 255)
 
 RED = (255, 0, 0)
+LIGHT_RED = (255, 100, 100)
 
 BLACK = (0, 0, 0)
 DARK_GRAY = (40, 40, 40)

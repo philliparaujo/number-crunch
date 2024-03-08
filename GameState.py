@@ -34,6 +34,9 @@ class GameState:
     def get_free_reroll(self):
         return self.free_reroll
 
+    def get_max_score(self):
+        return self.max_score
+
     def get_next_target(self):
         return self.next_target
 

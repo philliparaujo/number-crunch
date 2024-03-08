@@ -28,9 +28,13 @@ def main():
     # Mouse variables
     global clicking, dragging
 
-    # Initialize sound effects
-
     # Button functions
+    def start():
+        print("CLICKED")
+        nonlocal started, game_over
+        started = True
+        game_over = False
+
     def end_turn():
         nonlocal game_state
         if game_state.will_take_damage():
@@ -62,6 +66,17 @@ def main():
             add_cells(cells)
 
     # UI components
+    start_button = Button(
+        screen,
+        "START",
+        RED,
+        LIGHT_RED,
+        (SCREEN_WIDTH - BUTTON_WIDTH) / 2,
+        250,
+        BUTTON_WIDTH,
+        BUTTON_HEIGHT,
+        start,
+    )
     add_button = Button(
         screen,
         "ADD",
@@ -97,7 +112,8 @@ def main():
         BUTTON_HEIGHT,
         end_turn,
     )
-    buttons = [add_button, reroll_button, end_turn_button]
+    menu_buttons = [start_button]
+    gane_buttons = [add_button, reroll_button, end_turn_button]
 
     level_one_text = DraggableText(
         screen,
@@ -133,8 +149,20 @@ def main():
     )
 
     # Main loop
-    game_over = False
+    started = False
+    game_over = True
     exited = False
+
+    while not started and game_over and not exited:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                exited = True
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                handle_mouse_click(event, menu_buttons, cells, mouse_pos)
+
+        mouse_pos = pygame.mouse.get_pos()
+        draw_start_screen(screen, mouse_pos, start_button)
+
     while not game_over and not exited:
         if game_state.game_over():
             game_over = True
@@ -142,15 +170,15 @@ def main():
         screen.fill(BG_COLOR)
         mouse_pos = pygame.mouse.get_pos()
 
-        # Draw title, game state, board, shop, and buttons
-        draw_centered_text(screen, TITLE, TITLE_SIZE, SCREEN_WIDTH / 2, 20)
+        # Draw title, game state, board, shop, and gane buttons
+        draw_centered_text(screen, TITLE, SMALL_TITLE_SIZE, SCREEN_WIDTH / 2, 20)
         draw_game_state(screen, game_state)
 
         for cell in cells:
             cell.draw(mouse_pos, dragging, game_state.get_actions())
 
         draw_shop(screen, texts, game_state)
-        draw_buttons(screen, buttons, mouse_pos, game_state)
+        draw_game_buttons(screen, gane_buttons, mouse_pos, game_state)
 
         # Handling UI hover effects
         if not handle_add_preview(screen, cells, game_state):
@@ -169,7 +197,7 @@ def main():
 
             # Handle click events and allow for dragging
             elif event.type == pygame.MOUSEBUTTONDOWN:
-                handle_mouse_click(event, buttons, cells, mouse_pos)
+                handle_mouse_click(event, gane_buttons, cells, mouse_pos)
 
             # Handle drop events
             elif event.type == pygame.MOUSEBUTTONUP:
@@ -200,16 +228,6 @@ def draw_game_state(screen, game_state):
     draw_text(screen, actions_text, STATE_SIZE, STATE_X_1, 440)
     draw_text(screen, target_text, STATE_SIZE, STATE_X_2, 380)
     draw_text(screen, hp_text, STATE_SIZE, STATE_X_2, 410)
-
-
-def get_shop_range(weights, turn):
-    return (
-        "("
-        + str(min_choice(weights, turn))
-        + "-"
-        + str(max_choice(weights, turn))
-        + ")"
-    )
 
 
 def draw_shop(screen, texts, game_state):
@@ -252,7 +270,7 @@ def draw_shop(screen, texts, game_state):
         text.draw()
 
 
-def draw_buttons(screen, buttons, mouse_pos, game_state):
+def draw_game_buttons(screen, buttons, mouse_pos, game_state):
     add_button = buttons[0]
     reroll_button = buttons[1]
 
@@ -276,6 +294,37 @@ def draw_buttons(screen, buttons, mouse_pos, game_state):
         reroll_button.y - 15,
         DARK_GREEN,
     )
+
+
+def draw_start_screen(screen, pos, start_game_button):
+    screen.fill(BG_COLOR)
+
+    draw_centered_text(screen, "Number Crunch", TITLE_SIZE, SCREEN_WIDTH / 2, 180)
+    start_game_button.draw(pos)
+
+    pygame.display.flip()
+
+
+def draw_game_over_screen(screen, game_state):
+    screen.fill(BG_COLOR)
+    draw_centered_text(screen, "GAME OVER", TITLE_SIZE, SCREEN_WIDTH / 2, 80)
+    draw_centered_text(
+        screen, "Turn: " + str(game_state.get_turn()), 48, SCREEN_WIDTH / 2, 200
+    )
+    draw_centered_text(
+        screen, "Score: " + str(game_state.get_score()), 48, SCREEN_WIDTH / 2, 240
+    )
+    draw_centered_text(
+        screen,
+        "Max Score: " + str(game_state.get_max_score()),
+        48,
+        SCREEN_WIDTH / 2,
+        280,
+    )
+    draw_centered_text(
+        screen, "Target: " + str(game_state.get_target()), 48, SCREEN_WIDTH / 2, 320
+    )
+    pygame.display.flip()
 
 
 def handle_buy_preview(screen, cells, mouse_pos, game_state):
@@ -356,28 +405,6 @@ def handle_mouse_release(event, cells, pos, game_state):
                     game_state.decrease_actions(dragging.cost)
                     dragging = None
         dragging = None
-
-
-def draw_game_over_screen(screen, game_state):
-    screen.fill(BG_COLOR)
-    draw_centered_text(screen, "GAME OVER", 72, SCREEN_WIDTH / 2, 80)
-    draw_centered_text(
-        screen, "Turn: " + str(game_state.get_turn()), 48, SCREEN_WIDTH / 2, 200
-    )
-    draw_centered_text(
-        screen, "Score: " + str(game_state.get_score()), 48, SCREEN_WIDTH / 2, 240
-    )
-    draw_centered_text(
-        screen,
-        "Max Score: " + str(game_state.get_max_score()),
-        48,
-        SCREEN_WIDTH / 2,
-        280,
-    )
-    draw_centered_text(
-        screen, "Target: " + str(game_state.get_target()), 48, SCREEN_WIDTH / 2, 320
-    )
-    pygame.display.flip()
 
 
 if __name__ == "__main__":

@@ -44,3 +44,14 @@ def add_cells(cells):
 
         first_cell.selected = False
         second_cell.selected = False
+
+
+# Displays the range of possible number values for the shop
+def get_shop_range(weights, turn):
+    return (
+        "("
+        + str(min_choice(weights, turn))
+        + "-"
+        + str(max_choice(weights, turn))
+        + ")"
+    )

@@ -31,7 +31,7 @@ class Button:
 
         self.active = True
 
-    def draw(self, pos):
+    def get_updated_colors(self, pos):
         if self.check_active:
             self.active = self.check_active()
         border_color = GRAY if not self.active else BLACK
@@ -40,6 +40,10 @@ class Button:
             if not self.active
             else self.hover_color if self.isOver(pos) else self.color
         )
+        return border_color, color
+
+    def draw(self, pos):
+        border_color, color = self.get_updated_colors(pos)
 
         draw_rect(self.surface, border_color, self.x, self.y, self.width, self.height)
         draw_rect(
