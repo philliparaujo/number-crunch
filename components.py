@@ -4,6 +4,7 @@ from utils import *
 from sounds import *
 from ui import *
 from features import *
+from GameState import *
 
 
 class Button:
@@ -212,35 +213,51 @@ def create_grid(left, top, square_size, num_horiz, num_vert, gap):
     return cells
 
 
-# Component objects
-start_button = Button(
-    "START",
-    RED,
-    LIGHT_RED,
-    (SCREEN_WIDTH - BUTTON_WIDTH) / 2,
-    250,
-    BUTTON_WIDTH,
-    BUTTON_HEIGHT,
-)
-restart_button = Button(
-    "RESTART",
-    RED,
-    LIGHT_RED,
-    (SCREEN_WIDTH - BUTTON_WIDTH) / 2,
-    320,
-    BUTTON_WIDTH,
-    BUTTON_HEIGHT,
-)
-add_button = Button(
-    "ADD", PURPLE, LIGHT_PURPLE, SHOP_X, 400, BUTTON_WIDTH, BUTTON_HEIGHT
-)
-reroll_button = Button(
-    "REROLL", BLUE, LIGHT_BLUE, SHOP_X + 120, 400, BUTTON_WIDTH, BUTTON_HEIGHT
-)
-end_turn_button = Button(
-    "END TURN", DARK_GREEN, GREEN, SHOP_X + 240, 400, BUTTON_WIDTH, BUTTON_HEIGHT
-)
+# Button functions
+def start(cells):
+    game.set_started(True)
+    game.set_game_over(False)
+    for cell in cells:
+        cell.reset()
 
+
+def restart(cells, texts):
+    game.restart()
+    game.reset_texts(texts)
+    start(cells)
+
+
+def end_turn():
+    if game.will_take_damage():
+        damage_sfx.play()
+
+    game.end_turn()
+    game.reset_texts(texts)
+    game.print_scores()
+
+
+def reroll():
+    if game.can_reroll():
+        game.reroll()
+        game.reset_texts(texts)
+
+
+def add_check(cells):
+    num_selected = 0
+    for cell in cells:
+        if cell.selected:
+            num_selected += 1
+
+    return num_selected == 2
+
+
+def add(cells):
+    if add_check(cells):
+        add_sfx.play()
+        add_cells(cells)
+
+
+# Component objects
 cells = create_grid(GRID_X, 60, SQUARE_SIZE, GRID_WIDTH, GRID_HEIGHT, GRID_GAP)
 
 level_one_text = DraggableText(
@@ -268,3 +285,57 @@ level_three_text = DraggableText(
     level_three_weights,
 )
 texts = [level_one_text, level_two_text, level_three_text]
+
+
+start_button = Button(
+    "START",
+    RED,
+    LIGHT_RED,
+    (SCREEN_WIDTH - BUTTON_WIDTH) / 2,
+    250,
+    BUTTON_WIDTH,
+    BUTTON_HEIGHT,
+    lambda: start(cells),
+)
+restart_button = Button(
+    "RESTART",
+    RED,
+    LIGHT_RED,
+    (SCREEN_WIDTH - BUTTON_WIDTH) / 2,
+    320,
+    BUTTON_WIDTH,
+    BUTTON_HEIGHT,
+    lambda: restart(cells, texts),
+)
+add_button = Button(
+    "ADD",
+    PURPLE,
+    LIGHT_PURPLE,
+    SHOP_X,
+    400,
+    BUTTON_WIDTH,
+    BUTTON_HEIGHT,
+    lambda: add(cells),
+    lambda: add_check(cells),
+)
+reroll_button = Button(
+    "REROLL",
+    BLUE,
+    LIGHT_BLUE,
+    SHOP_X + 120,
+    400,
+    BUTTON_WIDTH,
+    BUTTON_HEIGHT,
+    lambda: reroll(),
+    lambda: game.can_reroll(),
+)
+end_turn_button = Button(
+    "END TURN",
+    DARK_GREEN,
+    GREEN,
+    SHOP_X + 240,
+    400,
+    BUTTON_WIDTH,
+    BUTTON_HEIGHT,
+    lambda: end_turn(),
+)
