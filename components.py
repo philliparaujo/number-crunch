@@ -2,12 +2,13 @@ from colors import *
 from drawer import *
 from utils import *
 from sounds import *
+from ui import *
+from features import *
 
 
 class Button:
     def __init__(
         self,
-        surface,
         text,
         color,
         hover_color,
@@ -18,7 +19,6 @@ class Button:
         on_click=None,
         check_active=None,
     ):
-        self.surface = surface
         self.text = text
         self.color = color
         self.hover_color = hover_color
@@ -42,12 +42,12 @@ class Button:
         )
         return border_color, color
 
-    def draw(self, pos):
+    def draw(self, surface, pos):
         border_color, color = self.get_updated_colors(pos)
 
-        draw_rect(self.surface, border_color, self.x, self.y, self.width, self.height)
+        draw_rect(surface, border_color, self.x, self.y, self.width, self.height)
         draw_rect(
-            self.surface,
+            surface,
             color,
             self.x + 2,
             self.y + 2,
@@ -55,7 +55,7 @@ class Button:
             self.height - 4,
         )
         draw_centered_text(
-            self.surface,
+            surface,
             self.text,
             int(self.width / 4),
             self.x + self.width / 2,
@@ -69,6 +69,10 @@ class Button:
                 return True
         return False
 
+    def attach(self, on_click=None, check_active=None):
+        self.on_click = on_click
+        self.check_active = check_active
+
     def click(self, pos):
         if self.isOver(pos):
             if self.on_click:
@@ -79,8 +83,7 @@ class Button:
 
 
 class Cell:
-    def __init__(self, surface, x, y, size, color, value=0, selected=False):
-        self.surface = surface
+    def __init__(self, x, y, size, color, value=0, selected=False):
         self.x = x
         self.y = y
         self.size = size
@@ -93,14 +96,14 @@ class Cell:
         self.value = 0
         self.selected = False
 
-    def draw(self, pos, dragging, actions):
+    def draw(self, surface, pos, dragging, actions):
         color = (
             GREEN
             if self.isOver(pos) and dragging and actions >= dragging.cost
             else self.color if not self.selected else RED
         )
         draw_rect(
-            self.surface,
+            surface,
             color,
             self.x,
             self.y,
@@ -108,7 +111,7 @@ class Cell:
             self.size,
         )
         draw_rect(
-            self.surface,
+            surface,
             WHITE,
             self.x + 2,
             self.y + 2,
@@ -117,7 +120,7 @@ class Cell:
         )
         if self.value:
             draw_centered_text(
-                self.surface,
+                surface,
                 str(self.value),
                 int(self.size / 3),
                 self.x + self.size / 2,
@@ -146,7 +149,6 @@ class Cell:
 
     def copy(self):
         return Cell(
-            self.surface,
             self.x,
             self.y,
             self.size,
@@ -157,8 +159,7 @@ class Cell:
 
 
 class DraggableText:
-    def __init__(self, surface, text, size, x, y, cost, weights):
-        self.surface = surface
+    def __init__(self, text, size, x, y, cost, weights):
         self.text = text
         self.size = size
         self.x = x
@@ -177,16 +178,9 @@ class DraggableText:
 
         self.text = str(random_choice(self.weights, turn))
 
-    def draw(self):
+    def draw(self, surface):
         if not self.deleted:
-            draw_centered_text(
-                self.surface,
-                self.text,
-                self.size,
-                self.x,
-                self.y,
-                BLACK,
-            )
+            draw_centered_text(surface, self.text, self.size, self.x, self.y, BLACK)
 
     def drag(self, pos, dragging):
         if self.deleted:
@@ -204,12 +198,11 @@ class DraggableText:
         return dragging
 
 
-def create_grid(surface, left, top, square_size, num_horiz, num_vert, gap):
+def create_grid(left, top, square_size, num_horiz, num_vert, gap):
     cells = []
     for i in range(num_horiz):
         for j in range(num_vert):
             cell = Cell(
-                surface,
                 left + i * (square_size + gap),
                 top + j * (square_size + gap),
                 square_size,
@@ -217,3 +210,61 @@ def create_grid(surface, left, top, square_size, num_horiz, num_vert, gap):
             )
             cells.append(cell)
     return cells
+
+
+# Component objects
+start_button = Button(
+    "START",
+    RED,
+    LIGHT_RED,
+    (SCREEN_WIDTH - BUTTON_WIDTH) / 2,
+    250,
+    BUTTON_WIDTH,
+    BUTTON_HEIGHT,
+)
+restart_button = Button(
+    "RESTART",
+    RED,
+    LIGHT_RED,
+    (SCREEN_WIDTH - BUTTON_WIDTH) / 2,
+    320,
+    BUTTON_WIDTH,
+    BUTTON_HEIGHT,
+)
+add_button = Button(
+    "ADD", PURPLE, LIGHT_PURPLE, SHOP_X, 400, BUTTON_WIDTH, BUTTON_HEIGHT
+)
+reroll_button = Button(
+    "REROLL", BLUE, LIGHT_BLUE, SHOP_X + 120, 400, BUTTON_WIDTH, BUTTON_HEIGHT
+)
+end_turn_button = Button(
+    "END TURN", DARK_GREEN, GREEN, SHOP_X + 240, 400, BUTTON_WIDTH, BUTTON_HEIGHT
+)
+
+cells = create_grid(GRID_X, 60, SQUARE_SIZE, GRID_WIDTH, GRID_HEIGHT, GRID_GAP)
+
+level_one_text = DraggableText(
+    str(random_choice(level_one_weights, 0)),
+    NUMBER_SIZE,
+    SHOP_X + SHOP_WIDTH / 2,
+    85,
+    1,
+    level_one_weights,
+)
+level_two_text = DraggableText(
+    str(random_choice(level_two_weights, 0)),
+    NUMBER_SIZE,
+    SHOP_X + SHOP_WIDTH / 2,
+    165,
+    2,
+    level_two_weights,
+)
+level_three_text = DraggableText(
+    str(random_choice(level_three_weights, 0)),
+    NUMBER_SIZE,
+    SHOP_X + SHOP_WIDTH / 2,
+    245,
+    3,
+    level_three_weights,
+)
+texts = [level_one_text, level_two_text, level_three_text]

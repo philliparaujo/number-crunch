@@ -26,9 +26,14 @@ def main():
     # Mouse variables
     global clicking, dragging
 
-    # Button functions
-    def start():
-        nonlocal started, game_over, game_state, cells, texts
+    # Loop variables
+    started = False
+    game_over = True
+    exited = False
+
+    # Attaching button functions to buttons
+    def start(game_state, cells, texts):
+        nonlocal started, game_over
         started = True
         game_over = False
         game_state.restart()
@@ -36,8 +41,7 @@ def main():
         for cell in cells:
             cell.reset()
 
-    def end_turn():
-        nonlocal game_state
+    def end_turn(game_state):
         if game_state.will_take_damage():
             damage_sfx.play()
 
@@ -45,14 +49,12 @@ def main():
         game_state.reset_texts(texts)
         game_state.print_scores()
 
-    def reroll():
-        nonlocal game_state
+    def reroll(game_state):
         if game_state.can_reroll():
             game_state.reroll()
             game_state.reset_texts(texts)
 
-    def add_check():
-        nonlocal cells
+    def add_check(cells):
         num_selected = 0
         for cell in cells:
             if cell.selected:
@@ -60,134 +62,44 @@ def main():
 
         return num_selected == 2
 
-    def add():
-        nonlocal cells
+    def add(cells):
         if add_check():
             add_sfx.play()
             add_cells(cells)
 
-    # UI components
-    start_button = Button(
-        screen,
-        "START",
-        RED,
-        LIGHT_RED,
-        (SCREEN_WIDTH - BUTTON_WIDTH) / 2,
-        250,
-        BUTTON_WIDTH,
-        BUTTON_HEIGHT,
-        start,
-    )
-    restart_button = Button(
-        screen,
-        "RESTART",
-        RED,
-        LIGHT_RED,
-        (SCREEN_WIDTH - BUTTON_WIDTH) / 2,
-        320,
-        BUTTON_WIDTH,
-        BUTTON_HEIGHT,
-        start,
-    )
-    add_button = Button(
-        screen,
-        "ADD",
-        PURPLE,
-        LIGHT_PURPLE,
-        SHOP_X,
-        400,
-        BUTTON_WIDTH,
-        BUTTON_HEIGHT,
-        add,
-        add_check,
-    )
-    reroll_button = Button(
-        screen,
-        "REROLL",
-        BLUE,
-        LIGHT_BLUE,
-        SHOP_X + 120,
-        400,
-        BUTTON_WIDTH,
-        BUTTON_HEIGHT,
-        reroll,
-        game_state.can_reroll,
-    )
-    end_turn_button = Button(
-        screen,
-        "END TURN",
-        DARK_GREEN,
-        GREEN,
-        SHOP_X + 240,
-        400,
-        BUTTON_WIDTH,
-        BUTTON_HEIGHT,
-        end_turn,
-    )
-    menu_buttons = [start_button, restart_button]
-    gane_buttons = [add_button, reroll_button, end_turn_button]
-
-    level_one_text = DraggableText(
-        screen,
-        str(random_choice(level_one_weights, 0)),
-        NUMBER_SIZE,
-        SHOP_X + SHOP_WIDTH / 2,
-        85,
-        1,
-        level_one_weights,
-    )
-    level_two_text = DraggableText(
-        screen,
-        str(random_choice(level_two_weights, 0)),
-        NUMBER_SIZE,
-        SHOP_X + SHOP_WIDTH / 2,
-        165,
-        2,
-        level_two_weights,
-    )
-    level_three_text = DraggableText(
-        screen,
-        str(random_choice(level_three_weights, 0)),
-        NUMBER_SIZE,
-        SHOP_X + SHOP_WIDTH / 2,
-        245,
-        3,
-        level_three_weights,
-    )
-    texts = [level_one_text, level_two_text, level_three_text]
-
-    cells = create_grid(
-        screen, GRID_X, 60, SQUARE_SIZE, GRID_WIDTH, GRID_HEIGHT, GRID_GAP
-    )
+    start_button.attach(lambda: start(game_state, cells, texts))
+    restart_button.attach(lambda: start(game_state, cells, texts))
+    add_button.attach(lambda: add(cells), lambda: add_check(cells))
+    reroll_button.attach(lambda: reroll(game_state), game_state.can_reroll)
+    end_turn_button.attach(lambda: end_turn(game_state))
 
     # Main loop
-    started = False
-    game_over = True
-    exited = False
-
     while not exited:
+        # Start screen
         while not started and game_over and not exited:
             mouse_pos = pygame.mouse.get_pos()
-            exited = handle_mouse_events(menu_buttons, cells, mouse_pos, game_state)
+            exited = handle_mouse_events([start_button], cells, mouse_pos, game_state)
             draw_start_screen(screen, mouse_pos, start_button)
 
+        # Gameplay screen
         while not game_over and not exited:
             if game_state.game_over():
                 game_over = True
 
             screen.fill(BG_COLOR)
             mouse_pos = pygame.mouse.get_pos()
-            exited = handle_mouse_events(gane_buttons, cells, mouse_pos, game_state)
+            game_buttons = [add_button, reroll_button, end_turn_button]
+            exited = handle_mouse_events(game_buttons, cells, mouse_pos, game_state)
 
             # Draw title, game state, board, shop, and gane buttons
             draw_centered_text(screen, TITLE, SMALL_TITLE_SIZE, SCREEN_WIDTH / 2, 20)
             draw_game_state(screen, game_state)
 
             for cell in cells:
-                cell.draw(mouse_pos, dragging, game_state.get_actions())
+                cell.draw(screen, mouse_pos, dragging, game_state.get_actions())
 
             draw_shop(screen, texts, game_state)
-            draw_game_buttons(screen, gane_buttons, mouse_pos, game_state)
+            draw_game_buttons(screen, game_buttons, mouse_pos, game_state)
 
             # Handling UI hover effects
             if not handle_add_preview(screen, cells, game_state):
@@ -206,7 +118,7 @@ def main():
         # Game over screen
         while game_over and not exited:
             mouse_pos = pygame.mouse.get_pos()
-            exited = handle_mouse_events(menu_buttons, cells, mouse_pos, game_state)
+            exited = handle_mouse_events([restart_button], cells, mouse_pos, game_state)
             draw_game_over_screen(screen, mouse_pos, game_state, restart_button)
 
 
@@ -263,7 +175,7 @@ def draw_shop(screen, texts, game_state):
     )
 
     for text in texts:
-        text.draw()
+        text.draw(screen)
 
 
 # Draw the 'add', 'reroll', and 'end turn' buttons and their costs
@@ -272,7 +184,7 @@ def draw_game_buttons(screen, buttons, mouse_pos, game_state):
     reroll_button = buttons[1]
 
     for button in buttons:
-        button.draw(mouse_pos)
+        button.draw(screen, mouse_pos)
 
     # Add button and reroll button costs
     draw_centered_text(
@@ -298,7 +210,7 @@ def draw_start_screen(screen, pos, start_game_button):
     screen.fill(BG_COLOR)
 
     draw_centered_text(screen, "Number Crunch", TITLE_SIZE, SCREEN_WIDTH / 2, 180)
-    start_game_button.draw(pos)
+    start_game_button.draw(screen, pos)
 
     pygame.display.flip()
 
@@ -323,7 +235,7 @@ def draw_game_over_screen(screen, pos, game_state, restart_button):
     draw_centered_text(
         screen, "Target: " + str(game_state.get_target()), 48, SCREEN_WIDTH / 2, 280
     )
-    restart_button.draw(pos)
+    restart_button.draw(screen, pos)
     pygame.display.flip()
 
 

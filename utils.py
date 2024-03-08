@@ -57,6 +57,6 @@ def get_shop_range(weights, turn):
     )
 
 
-# Return difference in scores between two grids
+# Return difference in scores between two boards
 def calculate_score_diff(cells, cells_copy):
     return calculate_score(cells_copy) - calculate_score(cells)
