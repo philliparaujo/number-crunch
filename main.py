@@ -345,7 +345,13 @@ def handle_mouse_release(event, cells, pos, game_state):
         if dragging and game_state.get_actions() >= dragging.cost:
             for cell in cells:
                 if cell.willDropSucceed(pos):
-                    purchase_sfx.play()
+                    if dragging.cost == 1:
+                        level_one_sfx.play()
+                    if dragging.cost == 2:
+                        level_two_sfx.play()
+                    if dragging.cost == 3:
+                        level_three_sfx.play()
+
                     cell.drop(pos, dragging)
                     game_state.decrease_actions(dragging.cost)
                     dragging = None
