@@ -28,11 +28,13 @@ def main():
 
     # Button functions
     def start():
-        print("CLICKED")
-        nonlocal started, game_over, game_state
+        nonlocal started, game_over, game_state, cells, texts
         started = True
         game_over = False
         game_state.restart()
+        game_state.reset_texts(texts)
+        for cell in cells:
+            cell.reset()
 
     def end_turn():
         nonlocal game_state
@@ -165,15 +167,8 @@ def main():
 
     while not exited:
         while not started and game_over and not exited:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    exited = True
-                elif event.type == pygame.MOUSEBUTTONDOWN:
-                    handle_mouse_click(event, menu_buttons, cells, mouse_pos)
-                elif event.type == pygame.MOUSEBUTTONUP:
-                    handle_mouse_release(event, cells, mouse_pos, game_state)
-
             mouse_pos = pygame.mouse.get_pos()
+            exited = handle_mouse_events(menu_buttons, cells, mouse_pos, game_state)
             draw_start_screen(screen, mouse_pos, start_button)
 
         while not game_over and not exited:
@@ -182,6 +177,7 @@ def main():
 
             screen.fill(BG_COLOR)
             mouse_pos = pygame.mouse.get_pos()
+            exited = handle_mouse_events(gane_buttons, cells, mouse_pos, game_state)
 
             # Draw title, game state, board, shop, and gane buttons
             draw_centered_text(screen, TITLE, SMALL_TITLE_SIZE, SCREEN_WIDTH / 2, 20)
@@ -203,37 +199,18 @@ def main():
                 if pygame.mouse.get_pressed()[0]:
                     dragging = text.drag(mouse_pos, dragging)
 
-            for event in pygame.event.get():
-                # Handle closing out of game
-                if event.type == pygame.QUIT:
-                    exited = True
-
-                # Handle click events and allow for dragging
-                elif event.type == pygame.MOUSEBUTTONDOWN:
-                    handle_mouse_click(event, gane_buttons, cells, mouse_pos)
-
-                # Handle drop events
-                elif event.type == pygame.MOUSEBUTTONUP:
-                    handle_mouse_release(event, cells, mouse_pos, game_state)
-
             game_state.update_score(cells)
 
             pygame.display.flip()
 
         # Game over screen
         while game_over and not exited:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    exited = True
-                elif event.type == pygame.MOUSEBUTTONDOWN:
-                    handle_mouse_click(event, menu_buttons, cells, mouse_pos)
-                elif event.type == pygame.MOUSEBUTTONUP:
-                    handle_mouse_release(event, cells, mouse_pos, game_state)
-
             mouse_pos = pygame.mouse.get_pos()
+            exited = handle_mouse_events(menu_buttons, cells, mouse_pos, game_state)
             draw_game_over_screen(screen, mouse_pos, game_state, restart_button)
 
 
+# Draw all game state details (score, turn, actions, target, hp)
 def draw_game_state(screen, game_state):
     score_text = "Score: " + str(game_state.get_score())
     turn_text = "Turn: " + str(game_state.get_turn())
@@ -248,6 +225,7 @@ def draw_game_state(screen, game_state):
     draw_text(screen, hp_text, STATE_SIZE, STATE_X_2, 410)
 
 
+# Draw the shop costs, numbers, and rectangles
 def draw_shop(screen, texts, game_state):
     turn = game_state.get_turn()
 
@@ -288,6 +266,7 @@ def draw_shop(screen, texts, game_state):
         text.draw()
 
 
+# Draw the 'add', 'reroll', and 'end turn' buttons and their costs
 def draw_game_buttons(screen, buttons, mouse_pos, game_state):
     add_button = buttons[0]
     reroll_button = buttons[1]
@@ -314,6 +293,7 @@ def draw_game_buttons(screen, buttons, mouse_pos, game_state):
     )
 
 
+# Draw the start screen
 def draw_start_screen(screen, pos, start_game_button):
     screen.fill(BG_COLOR)
 
@@ -323,6 +303,7 @@ def draw_start_screen(screen, pos, start_game_button):
     pygame.display.flip()
 
 
+# Draw the game over screen with score details
 def draw_game_over_screen(screen, pos, game_state, restart_button):
     screen.fill(BG_COLOR)
     draw_centered_text(screen, "GAME OVER", TITLE_SIZE, SCREEN_WIDTH / 2, 80)
@@ -346,8 +327,29 @@ def draw_game_over_screen(screen, pos, game_state, restart_button):
     pygame.display.flip()
 
 
-def handle_buy_preview(screen, cells, mouse_pos, game_state):
+# Given a change in score, draw that change next to score text
+def draw_score_diff(screen, score_diff, game_state):
     score_text = "Score: " + str(game_state.get_score())
+    score_width = get_text_width(score_text, STATE_SIZE)
+    score_preview = "(" + ("+" if score_diff >= 0 else "-") + str(abs(score_diff)) + ")"
+    draw_text(screen, score_preview, STATE_SIZE, STATE_X_1 + score_width + 5, 380)
+
+
+# Given a change in target score, draw that change next to target text
+def draw_target_diff(screen, target, target_diff):
+    target_text = "Target: " + str(target)
+    target_width = get_text_width(target_text, STATE_SIZE)
+    draw_text(
+        screen,
+        "(+" + str(target_diff) + ")",
+        STATE_SIZE,
+        STATE_X_2 + target_width + 5,
+        380,
+    )
+
+
+# Draw what the change in score will be when number is dropped in cell
+def handle_buy_preview(screen, cells, mouse_pos, game_state):
     cells_copy = [cell.copy() for cell in cells]
     for cell in cells_copy:
         if (
@@ -356,46 +358,30 @@ def handle_buy_preview(screen, cells, mouse_pos, game_state):
             and game_state.get_actions() >= dragging.cost
         ):
             cell.drop(mouse_pos, dragging, False)
-            score_diff = calculate_score(cells_copy) - calculate_score(cells)
-            score_preview = (
-                "(" + ("+" if score_diff >= 0 else "-") + str(abs(score_diff)) + ")"
-            )
-            score_width = get_text_dimensions(score_text, STATE_SIZE)[0]
-            draw_text(
-                screen, score_preview, STATE_SIZE, STATE_X_1 + score_width + 5, 380
-            )
+            score_diff = calculate_score_diff(cells, cells_copy)
+            draw_score_diff(screen, score_diff, game_state)
 
 
+# Draw what change in score will be when add is clicked, return if any change
 def handle_add_preview(screen, cells, game_state):
-    score_text = "Score: " + str(game_state.get_score())
     cells_copy = [cell.copy() for cell in cells]
     can_add = sum(1 for cell in cells_copy if cell.selected) == 2
     if can_add:
         add_cells(cells_copy)
-
-        score_diff = calculate_score(cells_copy) - calculate_score(cells)
-        score_preview = (
-            "(" + ("+" if score_diff >= 0 else "-") + str(abs(score_diff)) + ")"
-        )
-        score_width = get_text_dimensions(score_text, STATE_SIZE)[0]
-        draw_text(screen, score_preview, STATE_SIZE, STATE_X_1 + score_width + 5, 380)
+        score_diff = calculate_score_diff(cells, cells_copy)
+        draw_score_diff(screen, score_diff, game_state)
     return can_add
 
 
+# Draw what the change in target score will be when end turn is clicked
 def handle_end_turn_preview(screen, mouse_pos, end_turn_button, game_state):
-    target, next_target = game_state.get_target(), game_state.get_next_target()
-    target_text = "Target: " + str(target)
+    target = game_state.get_target()
     if end_turn_button.isOver(mouse_pos):
-        target_width = get_text_dimensions(target_text, STATE_SIZE)[0]
-        draw_text(
-            screen,
-            "(+" + str(next_target - target) + ")",
-            STATE_SIZE,
-            STATE_X_2 + target_width + 5,
-            380,
-        )
+        target_diff = game_state.get_next_target() - target
+        draw_target_diff(screen, target, target_diff)
 
 
+# Configure buttons and cells to respond to clicks
 def handle_mouse_click(event, buttons, cells, pos):
     global clicking
     if event.button == 1 and not clicking:
@@ -406,11 +392,12 @@ def handle_mouse_click(event, buttons, cells, pos):
         clicking = True
 
 
+# When mouse released, reset clicking/dragging and drop number in cell if allowed
 def handle_mouse_release(event, cells, pos, game_state):
     global clicking, dragging
     if event.button == 1:
         clicking = False
-        if dragging and game_state.get_actions() >= dragging.cost:
+        if game_state.can_drop(dragging):
             for cell in cells:
                 if cell.willDropSucceed(pos):
                     if dragging.cost == 1:
@@ -422,8 +409,17 @@ def handle_mouse_release(event, cells, pos, game_state):
 
                     cell.drop(pos, dragging)
                     game_state.decrease_actions(dragging.cost)
-                    dragging = None
         dragging = None
+
+
+def handle_mouse_events(buttons, cells, pos, game_state):
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            return True
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            handle_mouse_click(event, buttons, cells, pos)
+        elif event.type == pygame.MOUSEBUTTONUP:
+            handle_mouse_release(event, cells, pos, game_state)
 
 
 if __name__ == "__main__":

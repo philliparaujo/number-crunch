@@ -19,6 +19,10 @@ def get_text_dimensions(text, size):
     return font.size(text)
 
 
+def get_text_width(text, size):
+    return get_text_dimensions(text, size)[0]
+
+
 def draw_list(surface, array, size, x, y, color="black"):
     for i in range(len(array)):
         text = array[i]

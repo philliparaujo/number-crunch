@@ -49,6 +49,9 @@ class GameState:
     def can_reroll(self):
         return self.free_reroll or self.actions > 0
 
+    def can_drop(self, dragging):
+        return dragging and self.actions >= dragging.cost
+
     # Game procedures
     def restart(self):
         self.score = 0

@@ -79,7 +79,7 @@ class Button:
 
 
 class Cell:
-    def __init__(self, surface, x, y, size, color, value=None, selected=False):
+    def __init__(self, surface, x, y, size, color, value=0, selected=False):
         self.surface = surface
         self.x = x
         self.y = y
@@ -88,6 +88,10 @@ class Cell:
 
         self.value = value
         self.selected = selected
+
+    def reset(self):
+        self.value = 0
+        self.selected = False
 
     def draw(self, pos, dragging, actions):
         color = (
@@ -200,7 +204,7 @@ class DraggableText:
         return dragging
 
 
-def create_grid(surface, left, top, square_size, num_horiz, num_vert, gap, value=0):
+def create_grid(surface, left, top, square_size, num_horiz, num_vert, gap):
     cells = []
     for i in range(num_horiz):
         for j in range(num_vert):
@@ -210,7 +214,6 @@ def create_grid(surface, left, top, square_size, num_horiz, num_vert, gap, value
                 top + j * (square_size + gap),
                 square_size,
                 BLACK,
-                value,
             )
             cells.append(cell)
     return cells

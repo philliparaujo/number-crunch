@@ -55,3 +55,8 @@ def get_shop_range(weights, turn):
         + str(max_choice(weights, turn))
         + ")"
     )
+
+
+# Return difference in scores between two grids
+def calculate_score_diff(cells, cells_copy):
+    return calculate_score(cells_copy) - calculate_score(cells)
