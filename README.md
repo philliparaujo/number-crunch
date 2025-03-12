@@ -8,6 +8,7 @@ Number Crunch is a singleplayer, turn-based strategy game in a similar style to 
 - Install [python](https://www.python.org/downloads/)
 - Navigate to the extracted folder directory in a terminal: `cd <path/to/folder>/number-crunch-main`
 - Run the game: `python3 main.py`
+   - If error `ModuleNotFoundError: No module named 'pygame'`, then run `pip install pygame`
 ## Project Structure
 
 ### Main loop
